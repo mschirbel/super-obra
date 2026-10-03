@@ -78,6 +78,10 @@ export type SinapiInsumo = {
   id: string; codigo: string; descricao: string; unidade: string | null
   preco_ref: number | null; estado: string; mes_ref: string; search_vector: string | null
 }
+export type Blocker = {
+  id: string; obra_id: string; description: string; status: string
+  created_by: string | null; resolved_at: string | null; created_at: string; updated_at: string
+}
 
 export interface Database {
   public: {
@@ -110,6 +114,7 @@ export interface Database {
       measurement_items: { Row: MeasurementItem; Insert: Omit<MeasurementItem, 'id' | 'total'>; Update: Partial<Omit<MeasurementItem, 'id' | 'total'>>; Relationships: Rel }
       purchases: { Row: Purchase; Insert: Omit<Purchase, 'id' | 'created_at' | 'updated_at' | 'status'> & { status?: PurchaseStatus }; Update: Partial<Omit<Purchase, 'id'>>; Relationships: Rel }
       sinapi_insumos: { Row: SinapiInsumo; Insert: Omit<SinapiInsumo, 'id' | 'search_vector'>; Update: Partial<Omit<SinapiInsumo, 'id' | 'search_vector'>>; Relationships: Rel }
+      blockers: { Row: Blocker; Insert: Omit<Blocker, 'id' | 'created_at' | 'updated_at' | 'resolved_at'> & { resolved_at?: string | null }; Update: Partial<Omit<Blocker, 'id'>>; Relationships: Rel }
     }
   }
 }

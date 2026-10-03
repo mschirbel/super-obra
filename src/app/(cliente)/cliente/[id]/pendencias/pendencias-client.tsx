@@ -23,8 +23,7 @@ export function PendenciasClient({ blockers: initial }: Props) {
   async function handleConfirm(id: string) {
     setConfirmingId(id)
     const supabase = createClient()
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (supabase as any).from('blockers').update({ status: 'confirmado' }).eq('id', id)
+    await supabase.from('blockers').update({ status: 'confirmado' }).eq('id', id)
     setBlockers(prev => prev.map(b => b.id === id ? { ...b, status: 'confirmado' } : b))
     setConfirmingId(null)
   }
