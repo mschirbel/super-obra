@@ -1,0 +1,57 @@
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap');
+@import "tailwindcss";
+
+@theme inline {
+  /* Prumo brand colors */
+  --color-ground: #ECEBE7;
+  --color-frame: #F8F7F4;
+  --color-frame-line: #D9D5CC;
+  --color-ink: #16202A;
+  --color-ink-2: #4B5663;
+  --color-ink-3: #7D8691;
+  --color-exec: #1B4F7A;
+  --color-exec-soft: #DCE7F0;
+  --color-cli: #B26E14;
+  --color-cli-soft: #F6E6CF;
+  --color-chrome: #FFFFFF;
+  --color-chrome-line: #D9D5CC;
+  --color-danger: #C0392B;
+  --color-danger-soft: #FDECEA;
+  --color-success: #1A6B3A;
+  --color-success-soft: #D4EDDA;
+  --color-warning: #B26E14;
+  --color-warning-soft: #F6E6CF;
+
+  /* Typography */
+  --font-display: 'Archivo', 'Helvetica Neue', Arial, sans-serif;
+  --font-sans: 'IBM Plex Sans', 'Segoe UI', Roboto, Arial, sans-serif;
+  --font-mono: 'IBM Plex Mono', Consolas, monospace;
+}
+
+:root {
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: #ECEBE7;
+  color: #16202A;
+  font-family: 'IBM Plex Sans', 'Segoe UI', Roboto, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Safe area for mobile */
+.safe-top { padding-top: env(safe-area-inset-top, 0px); }
+.safe-bottom { padding-bottom: env(safe-area-inset-bottom, 0px); }
+
+/* Tap highlight */
+* { -webkit-tap-highlight-color: transparent; }
+
+/* Prevent overscroll bounce on mobile */
+body { overscroll-behavior: none; }
