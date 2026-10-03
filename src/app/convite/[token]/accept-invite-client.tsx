@@ -27,7 +27,7 @@ export function AcceptInviteClient({ invite, obraName, token, userEmail }: Props
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
-      router.push(`/cadastro?role=cliente&email=${encodeURIComponent(invite.email)}&convite=${token}`)
+      router.push(`/login?next=${encodeURIComponent(`/convite/${token}`)}`)
       return
     }
 
@@ -85,7 +85,7 @@ export function AcceptInviteClient({ invite, obraName, token, userEmail }: Props
             <Button variant="cli" size="lg" className="w-full" loading={loading} onClick={handleAccept}>
               Criar conta e aceitar
             </Button>
-            <Link href={`/login?redirect=/convite/${token}`}>
+            <Link href={`/login?next=${encodeURIComponent(`/convite/${token}`)}`}>
               <Button variant="secondary" size="lg" className="w-full">
                 Já tenho conta
               </Button>
