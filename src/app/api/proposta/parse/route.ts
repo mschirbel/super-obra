@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 
+export const runtime = 'nodejs'
+
 interface ParsedItem {
   line_number: number
   code: string
@@ -32,7 +34,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ items })
   } catch (err) {
     console.error('Parse error:', err)
-    return NextResponse.json({ items: [] })
+    return NextResponse.json({ items: [], error: String(err) })
   }
 }
 
@@ -102,52 +104,69 @@ async function parseCsv(file: File): Promise<ParsedItem[]> {
 }
 
 async function parsePdf(file: File): Promise<ParsedItem[]> {
-  try {
-    // Use pdf-parse to extract text
-    const buffer = Buffer.from(await file.arrayBuffer())
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const pdfParse = require('pdf-parse') as (buf: Buffer) => Promise<{ text: string }>
-    const data = await pdfParse(buffer)
-    const lines = data.text.split('\n').map((l: string) => l.trim()).filter(Boolean)
+  const buffer = Buffer.from(await file.arrayBuffer())
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const pdfParse = require('pdf-parse') as (buf: Buffer) => Promise<{ text: string }>
+  const data = await pdfParse(buffer)
+  const lines = data.text.split('\n').map((l: string) => l.trim()).filter(Boolean)
 
-    const items: ParsedItem[] = []
-    let lineNumber = 0
+  const items: ParsedItem[] = []
+  let lineNumber = 0
 
-    // Heuristic: look for lines with numbers at the end that could be prices
-    // Pattern: description ... qty unit price
-    const pricePattern = /(\d[\d.,]*)\s*$/
-    const codePattern = /^([A-Z0-9]{3,12})\s/
+  // Brazilian budget PDFs commonly have lines like:
+  // [code] description  unit  qty  unit_price  total
+  // e.g.: "1.1 Demolição de revestimento cerâmico m² 50,00 35,00 1.750,00"
+  // We look for lines that contain at least 2 numeric tokens (qty + price or price + total)
+  const numToken = /\d[\d.,]*/g
 
-    for (const line of lines) {
-      if (line.length < 5) continue
-      const priceMatch = line.match(pricePattern)
-      if (!priceMatch) continue
+  for (const line of lines) {
+    if (line.length < 8) continue
 
-      // Try to extract code, description, and price
-      const codeMatch = line.match(codePattern)
-      const code = codeMatch ? codeMatch[1] : ''
-      const description = line
-        .replace(codePattern, '')
-        .replace(/\s+\d[\d.,]*\s*$/, '')
-        .trim()
+    const nums = [...line.matchAll(numToken)].map(m => m[0])
+    if (nums.length < 2) continue
 
-      if (description.length < 3) continue
+    // Last number is likely total, second-to-last is unit_price, third-to-last is qty
+    const total = parseNum(nums[nums.length - 1])
+    const unitPrice = parseNum(nums[nums.length - 2])
+    const qty = nums.length >= 3 ? parseNum(nums[nums.length - 3]) : 1
 
-      lineNumber++
-      items.push({
-        line_number: lineNumber,
-        code,
-        description,
-        unit: 'un',
-        qty: 1,
-        unit_price: parseNum(priceMatch[1]),
-      })
+    // Unit price must be > 0, total must be >= unit price (sanity check)
+    if (unitPrice <= 0) continue
+    if (total > 0 && total < unitPrice * 0.5) continue
+
+    // Strip all trailing numbers to get the description
+    let description = line
+    for (let i = 0; i < Math.min(nums.length, 3); i++) {
+      description = description.replace(new RegExp(`\\s*${nums[nums.length - 1 - i].replace('.', '\\.')}\\s*$`), '')
     }
 
-    return items.slice(0, 200)
-  } catch {
-    return []
+    // Try to detect unit (last non-numeric word that looks like a unit)
+    const unitMatch = description.match(/\b(m[²³]?|cm|kg|t\b|l\b|un|vb|cj|gl|hr?|dia|pç|m\.l\.?|ml)\b/i)
+    const unit = unitMatch ? unitMatch[1].toLowerCase() : 'un'
+    if (unitMatch) description = description.replace(unitMatch[0], '')
+
+    // Try to detect and strip leading code
+    const codeMatch = description.match(/^\s*(\d[\d.]*|\d+\.\d+)\s+/)
+    const code = codeMatch ? codeMatch[1] : ''
+    if (codeMatch) description = description.replace(codeMatch[0], '')
+
+    description = description.trim()
+    if (description.length < 4) continue
+    // Skip lines that look like headers
+    if (/descri[çc]|item|servi[çc]|total\s*geral|subtotal|valor\s*total/i.test(description) && nums.length < 4) continue
+
+    lineNumber++
+    items.push({
+      line_number: lineNumber,
+      code,
+      description,
+      unit,
+      qty: qty > 0 ? qty : 1,
+      unit_price: unitPrice,
+    })
   }
+
+  return items.slice(0, 300)
 }
 
 function detectColumns(headerRow: any[]): Record<string, number> {

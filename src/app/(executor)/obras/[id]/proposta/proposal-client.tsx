@@ -30,6 +30,7 @@ export function ProposalClient({ obraId, proposals: initialProposals, members }:
   const [file, setFile] = useState<File | null>(null)
   const [parsing, setParsing] = useState(false)
   const [parsedItems, setParsedItems] = useState<ParsedItem[]>([])
+  const [parseWarning, setParseWarning] = useState('')
   const [saving, setSaving] = useState(false)
   const [sendingId, setSendingId] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
@@ -41,12 +42,18 @@ export function ProposalClient({ obraId, proposals: initialProposals, members }:
     setParsing(true)
     const formData = new FormData()
     formData.append('file', f)
+    setParseWarning('')
     try {
       const res = await fetch('/api/proposta/parse', { method: 'POST', body: formData })
       const data = await res.json()
-      if (data.items) setParsedItems(data.items)
+      if (data.items?.length) {
+        setParsedItems(data.items)
+      } else {
+        setParseWarning('Não foi possível ler os itens automaticamente. Adicione manualmente abaixo.')
+        setParsedItems([{ line_number: 1, code: '', description: '', unit: 'un', qty: 1, unit_price: 0 }])
+      }
     } catch {
-      // Show empty editable table
+      setParseWarning('Erro ao processar o arquivo. Adicione os itens manualmente.')
       setParsedItems([{ line_number: 1, code: '', description: '', unit: 'un', qty: 1, unit_price: 0 }])
     }
     setParsing(false)
@@ -191,6 +198,9 @@ export function ProposalClient({ obraId, proposals: initialProposals, members }:
             <p className="text-xs text-ink-3 mt-2">
               O sistema tenta ler os itens automaticamente. Você pode editar a tabela abaixo.
             </p>
+            {parseWarning && (
+              <p className="text-xs text-warning bg-warning-soft rounded-lg px-3 py-2 mt-2">{parseWarning}</p>
+            )}
           </div>
 
           {/* Editable items table */}
