@@ -15,18 +15,32 @@ export function formatCurrency(value: number | null | undefined): string {
 
 export function formatDate(date: string | Date | null | undefined): string {
   if (!date) return ''
-  const d = typeof date === 'string' ? new Date(date + 'T00:00:00') : date
-  return new Intl.DateTimeFormat('pt-BR').format(d)
+  try {
+    const d = typeof date === 'string'
+      ? (date.includes('T') ? new Date(date) : new Date(date + 'T00:00:00'))
+      : date
+    if (isNaN(d.getTime())) return ''
+    return new Intl.DateTimeFormat('pt-BR').format(d)
+  } catch {
+    return ''
+  }
 }
 
 export function formatDateLong(date: string | Date | null | undefined): string {
   if (!date) return ''
-  const d = typeof date === 'string' ? new Date(date + 'T00:00:00') : date
-  return new Intl.DateTimeFormat('pt-BR', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-  }).format(d)
+  try {
+    const d = typeof date === 'string'
+      ? (date.includes('T') ? new Date(date) : new Date(date + 'T00:00:00'))
+      : date
+    if (isNaN(d.getTime())) return ''
+    return new Intl.DateTimeFormat('pt-BR', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+    }).format(d)
+  } catch {
+    return ''
+  }
 }
 
 export function todayISO(): string {
