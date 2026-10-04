@@ -8,12 +8,13 @@ import type { TeamMember, ObraAssignment } from '@/lib/types/database'
 
 interface Props {
   obraId: string
+  userId: string
   allMembers: TeamMember[]
   obraAssignments: ObraAssignment[]
   allActiveAssignments: { team_member_id: string; obra_id: string }[]
 }
 
-export function EquipeClient({ obraId, allMembers: initial, obraAssignments: initialAssignments, allActiveAssignments }: Props) {
+export function EquipeClient({ obraId, userId, allMembers: initial, obraAssignments: initialAssignments, allActiveAssignments }: Props) {
   const [members, setMembers] = useState(initial)
   const [assignments, setAssignments] = useState(initialAssignments)
   const [name, setName] = useState('')
@@ -70,7 +71,7 @@ export function EquipeClient({ obraId, allMembers: initial, obraAssignments: ini
     const supabase = createClient()
     const { data: member } = await supabase
       .from('team_members')
-      .insert({ name: name.trim(), role: role.trim() || null, phone: phone.trim() || null })
+      .insert({ executor_id: userId, name: name.trim(), role: role.trim() || null, phone: phone.trim() || null })
       .select()
       .single()
     if (member) {

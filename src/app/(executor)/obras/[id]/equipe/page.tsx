@@ -26,6 +26,7 @@ export default async function EquipePage({ params }: Props) {
       <PageHeader title="Equipe" subtitle={obra.name} backHref={`/obras/${id}`} variant="exec" />
       <EquipeClient
         obraId={id}
+        userId={user.id}
         allMembers={allMembers || []}
         obraAssignments={obraAssignments || []}
         allActiveAssignments={allActiveAssignments || []}
