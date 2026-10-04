@@ -108,65 +108,51 @@ async function parsePdf(file: File): Promise<ParsedItem[]> {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const pdfParse = require('pdf-parse') as (buf: Buffer) => Promise<{ text: string }>
   const data = await pdfParse(buffer)
-  const lines = data.text.split('\n').map((l: string) => l.trim()).filter(Boolean)
+  const text = data.text.slice(0, 12000) // keep within token budget
 
-  const items: ParsedItem[] = []
-  let lineNumber = 0
+  if (!text.trim()) return []
 
-  // Brazilian budget PDFs commonly have lines like:
-  // [code] description  unit  qty  unit_price  total
-  // e.g.: "1.1 Demolição de revestimento cerâmico m² 50,00 35,00 1.750,00"
-  // We look for lines that contain at least 2 numeric tokens (qty + price or price + total)
-  const numToken = /\d[\d.,]*/g
+  const Anthropic = (await import('@anthropic-ai/sdk')).default
+  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
-  for (const line of lines) {
-    if (line.length < 8) continue
+  const message = await client.messages.create({
+    model: 'claude-haiku-4-5-20251001',
+    max_tokens: 4096,
+    messages: [
+      {
+        role: 'user',
+        content: `Você receberá o texto extraído de um orçamento de obra brasileiro em PDF. Extraia todos os itens de serviço/material e retorne APENAS um JSON válido (sem markdown, sem explicação) no formato:
+[{"code":"","description":"","unit":"","qty":0,"unit_price":0}]
 
-    const nums = [...line.matchAll(numToken)].map(m => m[0])
-    if (nums.length < 2) continue
+Regras:
+- Ignore cabeçalhos, totais, subtotais e rodapés
+- Se não encontrar qty ou unit_price, use 0
+- unit: use a unidade original (m², m, un, vb, kg, etc)
+- code: código do item se houver (ex: "1.1"), caso contrário ""
+- Retorne array vazio [] se não houver itens identificáveis
 
-    // Last number is likely total, second-to-last is unit_price, third-to-last is qty
-    const total = parseNum(nums[nums.length - 1])
-    const unitPrice = parseNum(nums[nums.length - 2])
-    const qty = nums.length >= 3 ? parseNum(nums[nums.length - 3]) : 1
+Texto do PDF:
+${text}`,
+      },
+    ],
+  })
 
-    // Unit price must be > 0, total must be >= unit price (sanity check)
-    if (unitPrice <= 0) continue
-    if (total > 0 && total < unitPrice * 0.5) continue
+  const raw = (message.content[0] as { type: string; text: string }).text.trim()
+  const parsed = JSON.parse(raw) as Array<{
+    code: string; description: string; unit: string; qty: number; unit_price: number
+  }>
 
-    // Strip all trailing numbers to get the description
-    let description = line
-    for (let i = 0; i < Math.min(nums.length, 3); i++) {
-      description = description.replace(new RegExp(`\\s*${nums[nums.length - 1 - i].replace('.', '\\.')}\\s*$`), '')
-    }
-
-    // Try to detect unit (last non-numeric word that looks like a unit)
-    const unitMatch = description.match(/\b(m[²³]?|cm|kg|t\b|l\b|un|vb|cj|gl|hr?|dia|pç|m\.l\.?|ml)\b/i)
-    const unit = unitMatch ? unitMatch[1].toLowerCase() : 'un'
-    if (unitMatch) description = description.replace(unitMatch[0], '')
-
-    // Try to detect and strip leading code
-    const codeMatch = description.match(/^\s*(\d[\d.]*|\d+\.\d+)\s+/)
-    const code = codeMatch ? codeMatch[1] : ''
-    if (codeMatch) description = description.replace(codeMatch[0], '')
-
-    description = description.trim()
-    if (description.length < 4) continue
-    // Skip lines that look like headers
-    if (/descri[çc]|item|servi[çc]|total\s*geral|subtotal|valor\s*total/i.test(description) && nums.length < 4) continue
-
-    lineNumber++
-    items.push({
-      line_number: lineNumber,
-      code,
-      description,
-      unit,
-      qty: qty > 0 ? qty : 1,
-      unit_price: unitPrice,
-    })
-  }
-
-  return items.slice(0, 300)
+  return parsed
+    .filter(i => i.description?.trim().length > 2)
+    .map((i, idx) => ({
+      line_number: idx + 1,
+      code: i.code || '',
+      description: i.description.trim(),
+      unit: i.unit || 'un',
+      qty: Number(i.qty) || 1,
+      unit_price: Number(i.unit_price) || 0,
+    }))
+    .slice(0, 300)
 }
 
 function detectColumns(headerRow: any[]): Record<string, number> {
