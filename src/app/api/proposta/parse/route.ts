@@ -112,16 +112,11 @@ async function parsePdf(file: File): Promise<ParsedItem[]> {
 
   if (!text.trim()) return []
 
-  const Anthropic = (await import('@anthropic-ai/sdk')).default
-  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+  const { GoogleGenerativeAI } = await import('@google/generative-ai')
+  const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' })
 
-  const message = await client.messages.create({
-    model: 'claude-haiku-4-5-20251001',
-    max_tokens: 4096,
-    messages: [
-      {
-        role: 'user',
-        content: `Você receberá o texto extraído de um orçamento de obra brasileiro em PDF. Extraia todos os itens de serviço/material e retorne APENAS um JSON válido (sem markdown, sem explicação) no formato:
+  const result = await model.generateContent(`Você receberá o texto extraído de um orçamento de obra brasileiro em PDF. Extraia todos os itens de serviço/material e retorne APENAS um JSON válido (sem markdown, sem explicação) no formato:
 [{"code":"","description":"","unit":"","qty":0,"unit_price":0}]
 
 Regras:
@@ -132,12 +127,10 @@ Regras:
 - Retorne array vazio [] se não houver itens identificáveis
 
 Texto do PDF:
-${text}`,
-      },
-    ],
-  })
+${text}`)
 
-  const raw = (message.content[0] as { type: string; text: string }).text.trim()
+  const raw = result.response.text().trim()
+    .replace(/^```json\s*/i, '').replace(/```\s*$/, '')
   const parsed = JSON.parse(raw) as Array<{
     code: string; description: string; unit: string; qty: number; unit_price: number
   }>
