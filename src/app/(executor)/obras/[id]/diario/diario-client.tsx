@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { formatDate } from '@/lib/utils'
-import type { ObraTeamMember, CatalogItem } from '@/lib/types/database'
+import type { TeamMember, CatalogItem } from '@/lib/types/database'
 import { cn } from '@/lib/utils'
 
 interface DiaryEntryFull {
@@ -13,14 +13,14 @@ interface DiaryEntryFull {
   no_work_reason: string | null
   notes: string | null
   closed: boolean
-  diary_workers: Array<{ id: string; team_member_id: string; came: boolean; obra_team: ObraTeamMember }>
+  diary_workers: Array<{ id: string; team_member_id: string; came: boolean; team_members: TeamMember }>
   diary_item_progress: Array<{ id: string; catalog_item_id: string; qty_done: number }>
 }
 
 interface Props {
   obraId: string
   today: string
-  team: ObraTeamMember[]
+  team: TeamMember[]
   catalogItems: CatalogItem[]
   todayEntry: DiaryEntryFull | null
   recentEntries: Array<{ id: string; date: string; no_work: boolean; closed: boolean }>

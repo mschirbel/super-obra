@@ -1,0 +1,48 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__claude_ai_Claude_Docs__read",
+      "mcp__supabase__list_projects",
+      "mcp__supabase__get_cost",
+      "mcp__supabase__confirm_cost",
+      "mcp__supabase__create_project",
+      "mcp__vercel__list_teams",
+      "mcp__vercel__list_projects",
+      "Bash(npx create-next-app@latest . --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --no-git --yes)",
+      "Bash(rm README.md)",
+      "mcp__supabase__get_project_url",
+      "mcp__supabase__get_publishable_keys",
+      "Bash(npm install:*)",
+      "mcp__supabase__apply_migration",
+      "Bash(node -e \"console.log\\(require\\(''./node_modules/tailwindcss/package.json''\\).version\\)\")",
+      "Bash(npx tsc:*)",
+      "Bash(node -e \"console.log\\(require\\(''./node_modules/@supabase/supabase-js/package.json''\\).version, require\\(''./node_modules/@supabase/ssr/package.json''\\).version\\)\")",
+      "Bash(node -e \"const s = require\\(''''./node_modules/stripe/package.json''''\\); console.log\\(s.version\\)\")",
+      "Bash(node -e \"const s = require\\(''''./node_modules/stripe''''\\); const c = new s.default\\(''''sk_test''''\\); console.log\\(Object.keys\\(c\\).slice\\(0,3\\)\\)\")",
+      "Bash(node -e \"const Stripe = require\\(''./node_modules/stripe''\\).default; console.log\\(Stripe.LATEST_API_VERSION\\)\")",
+      "Bash(find C:/Users/mschi/Documents/Personal/super-obra/node_modules/stripe -name *.d.ts)",
+      "Bash(npx next:*)",
+      "mcp__supabase__get_project",
+      "mcp__supabase__list_tables",
+      "mcp__supabase__execute_sql",
+      "Bash(npx vercel:*)",
+      "mcp__vercel__create_project",
+      "mcp__vercel__update_project",
+      "mcp__vercel__delete_project",
+      "mcp__vercel__search_repo",
+      "mcp__vercel__create_deployment",
+      "mcp__vercel__create_project_env",
+      "mcp__vercel__get_deployment",
+      "mcp__vercel__list_deployments",
+      "Bash(SUPABASE_SERVICE_ROLE_KEY=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx1bGRsYWtscmdkamdleXRlcmd3Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc5MTAzODQ3MSwiZXhwIjoyMTA2NjE0NDcxfQ.QOoZzjAl8o4iAvpcWu1dFcmM9fbBbhAFw7V0XW97pKI\" npx tsx scripts/seed-sinapi.ts)",
+      "mcp__supabase__query_logs",
+      "Bash(curl -s -X PATCH \"https://luldlaklrgdjgeytergw.supabase.co/auth/v1/admin/users/77f4736b-5c11-4fc2-bc9d-86e7addf7fdf\" -H \"Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx1bGRsYWtscmdkamdleXRlcmd3Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc5MTAzODQ3MSwiZXhwIjoyMTA2NjE0NDcxfQ.QOoZzjAl8o4iAvpcWu1dFcmM9fbBbhAFw7V0XW97pKI\" -H \"Content-Type: application/json\" -d \"{\"\"password\"\": \"\"Prumo2026!\"\"}\")",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
+    ]
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "supabase"
+  ]
+}

@@ -14,7 +14,12 @@ export default async function DiarioPage({ params }: Props) {
 
   const [{ data: obra }, { data: team }, { data: catalogItems }] = await Promise.all([
     supabase.from('obras').select('id, name').eq('id', id).eq('executor_id', user.id).single(),
-    supabase.from('obra_team').select('*').eq('obra_id', id).eq('active', true).order('name'),
+    supabase
+      .from('obra_assignments')
+      .select('team_members(*)')
+      .eq('obra_id', id)
+      .is('unassigned_at', null)
+      .order('team_members(name)'),
     supabase.from('catalog_items').select('*').eq('obra_id', id).order('order_index'),
   ])
 
@@ -23,7 +28,7 @@ export default async function DiarioPage({ params }: Props) {
   const today = todayISO()
   const { data: todayEntry } = await supabase
     .from('diary_entries')
-    .select('*, diary_workers(*, obra_team(*)), diary_item_progress(*)')
+    .select('*, diary_workers(*, team_members(*)), diary_item_progress(*)')
     .eq('obra_id', id)
     .eq('date', today)
     .single()
@@ -48,7 +53,7 @@ export default async function DiarioPage({ params }: Props) {
       <DiarioClient
         obraId={id}
         today={today}
-        team={team || []}
+        team={((team || []) as any[]).map((a: any) => a.team_members).filter(Boolean)}
         catalogItems={catalogItems || []}
         todayEntry={todayEntry as any}
         recentEntries={recentEntries || []}

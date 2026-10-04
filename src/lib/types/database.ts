@@ -43,9 +43,13 @@ export type CatalogItem = {
   qty_total: number; qty_done: number; unit_price: number
   order_index: number; created_at: string; updated_at: string
 }
-export type ObraTeamMember = {
-  id: string; obra_id: string; name: string; role: string | null
-  active: boolean; created_at: string
+export type TeamMember = {
+  id: string; executor_id: string; name: string; role: string | null
+  phone: string | null; active: boolean; created_at: string
+}
+export type ObraAssignment = {
+  id: string; obra_id: string; team_member_id: string
+  assigned_at: string; unassigned_at: string | null
 }
 export type DiaryEntry = {
   id: string; obra_id: string; date: string; no_work: boolean
@@ -106,7 +110,8 @@ export interface Database {
       proposals: { Row: Proposal; Insert: Omit<Proposal, 'id' | 'created_at' | 'updated_at' | 'status' | 'accepted_at' | 'sent_at'> & { status?: ProposalStatus; accepted_at?: string | null; sent_at?: string | null }; Update: Partial<Omit<Proposal, 'id'>>; Relationships: Rel }
       proposal_items: { Row: ProposalItem; Insert: Omit<ProposalItem, 'id' | 'total' | 'created_at' | 'sinapi_id' | 'code'> & { sinapi_id?: string | null; code?: string | null }; Update: Partial<Omit<ProposalItem, 'id' | 'total'>>; Relationships: Rel }
       catalog_items: { Row: CatalogItem; Insert: Omit<CatalogItem, 'id' | 'created_at' | 'updated_at' | 'qty_done'> & { qty_done?: number }; Update: Partial<Omit<CatalogItem, 'id'>>; Relationships: Rel }
-      obra_team: { Row: ObraTeamMember; Insert: Omit<ObraTeamMember, 'id' | 'created_at' | 'active'> & { active?: boolean }; Update: Partial<Omit<ObraTeamMember, 'id'>>; Relationships: Rel }
+      team_members: { Row: TeamMember; Insert: Omit<TeamMember, 'id' | 'created_at' | 'active' | 'phone'> & { active?: boolean; phone?: string | null }; Update: Partial<Omit<TeamMember, 'id'>>; Relationships: Rel }
+      obra_assignments: { Row: ObraAssignment; Insert: Omit<ObraAssignment, 'id' | 'assigned_at' | 'unassigned_at'> & { unassigned_at?: string | null }; Update: Partial<Omit<ObraAssignment, 'id'>>; Relationships: Rel }
       diary_entries: { Row: DiaryEntry; Insert: Omit<DiaryEntry, 'id' | 'created_at' | 'updated_at'>; Update: Partial<Omit<DiaryEntry, 'id'>>; Relationships: Rel }
       diary_workers: { Row: DiaryWorker; Insert: Omit<DiaryWorker, 'id'>; Update: Partial<Omit<DiaryWorker, 'id'>>; Relationships: Rel }
       diary_item_progress: { Row: DiaryItemProgress; Insert: Omit<DiaryItemProgress, 'id'>; Update: Partial<Omit<DiaryItemProgress, 'id'>>; Relationships: Rel }
