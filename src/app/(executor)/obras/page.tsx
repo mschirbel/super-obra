@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { PageHeader } from '@/components/layout/page-header'
 import { ObraStatusBadge } from '@/components/ui/status-badge'
+import { LogoutButton } from '@/components/ui/logout-button'
 import { getObrasLimit, tierLabel } from '@/lib/utils'
 import type { Obra } from '@/lib/types/database'
 
@@ -27,15 +28,18 @@ export default async function ObrasPage() {
         subtitle={`${tierLabel(profile?.tier || 'free')} · ${count}/${limit === 99999 ? '∞' : limit} obras`}
         variant="exec"
         actions={
-          canCreate ? (
-            <Link
-              href="/obras/nova"
-              className="flex items-center justify-center w-9 h-9 bg-exec text-white rounded-xl font-bold text-xl hover:bg-exec/90 transition-colors"
-              aria-label="Nova obra"
-            >
-              +
-            </Link>
-          ) : null
+          <div className="flex items-center gap-1">
+            {canCreate && (
+              <Link
+                href="/obras/nova"
+                className="flex items-center justify-center w-9 h-9 bg-exec text-white rounded-xl font-bold text-xl hover:bg-exec/90 transition-colors"
+                aria-label="Nova obra"
+              >
+                +
+              </Link>
+            )}
+            <LogoutButton />
+          </div>
         }
       />
 
