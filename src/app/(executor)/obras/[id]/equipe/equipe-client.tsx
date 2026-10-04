@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { cn } from '@/lib/utils'
+import { cn, formatPhone, isValidPhone } from '@/lib/utils'
 import type { TeamMember, ObraAssignment } from '@/lib/types/database'
 
 interface Props {
@@ -23,6 +23,7 @@ export function EquipeClient({ obraId, userId, allMembers: initial, obraAssignme
   const [showForm, setShowForm] = useState(false)
   const [adding, setAdding] = useState(false)
   const [loadingId, setLoadingId] = useState<string | null>(null)
+  const [phoneError, setPhoneError] = useState('')
 
   const assignedIds = new Set(assignments.filter(a => !a.unassigned_at).map(a => a.team_member_id))
 
@@ -67,6 +68,11 @@ export function EquipeClient({ obraId, userId, allMembers: initial, obraAssignme
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault()
     if (!name.trim()) return
+    if (phone && !isValidPhone(phone)) {
+      setPhoneError('Telefone inválido. Use (XX) XXXXX-XXXX')
+      return
+    }
+    setPhoneError('')
     setAdding(true)
     const supabase = createClient()
     const { data: member } = await supabase
@@ -163,7 +169,15 @@ export function EquipeClient({ obraId, userId, allMembers: initial, obraAssignme
           <p className="font-semibold text-ink text-sm">Novo trabalhador</p>
           <Input label="Nome" value={name} onChange={e => setName(e.target.value)} placeholder="Ex: Carlos Pereira" required />
           <Input label="Função (opcional)" value={role} onChange={e => setRole(e.target.value)} placeholder="Ex: Pedreiro" />
-          <Input label="Telefone (opcional)" value={phone} onChange={e => setPhone(e.target.value)} placeholder="Ex: (11) 99999-9999" />
+          <div>
+            <Input
+              label="Telefone (opcional)"
+              value={phone}
+              onChange={e => { setPhone(formatPhone(e.target.value)); setPhoneError('') }}
+              placeholder="(11) 99999-9999"
+            />
+            {phoneError && <p className="text-xs text-danger mt-1">{phoneError}</p>}
+          </div>
           <p className="text-xs text-ink-3">Será adicionado à sua equipe e alocado nesta obra.</p>
           <div className="flex gap-2">
             <Button type="submit" loading={adding} className="flex-1">Adicionar</Button>

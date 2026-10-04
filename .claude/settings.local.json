@@ -38,7 +38,13 @@
       "mcp__supabase__query_logs",
       "Bash(curl -s -X PATCH \"https://luldlaklrgdjgeytergw.supabase.co/auth/v1/admin/users/77f4736b-5c11-4fc2-bc9d-86e7addf7fdf\" -H \"Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx1bGRsYWtscmdkamdleXRlcmd3Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc5MTAzODQ3MSwiZXhwIjoyMTA2NjE0NDcxfQ.QOoZzjAl8o4iAvpcWu1dFcmM9fbBbhAFw7V0XW97pKI\" -H \"Content-Type: application/json\" -d \"{\"\"password\"\": \"\"Prumo2026!\"\"}\")",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(npm test:*)",
+      "mcp__vercel__list_deployment_events",
+      "Bash(xargs grep:*)",
+      "Bash(grep -r proxy C:UsersmschiDocumentsPersonalsuper-obranode_modulesnextdistdocs01-app --include=*.md -l)",
+      "Bash(grep '\"\"version\"\"' node_modules/@vitest/coverage-v8/package.json)",
+      "Bash(npm uninstall:*)"
     ]
   },
   "enableAllProjectMcpServers": true,

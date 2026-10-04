@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { cn } from '@/lib/utils'
+import { cn, formatPhone, isValidPhone } from '@/lib/utils'
 import type { TeamMember } from '@/lib/types/database'
 
 interface ActiveAssignment {
@@ -26,6 +26,7 @@ export function EquipeGlobalClient({ userId, members: initial, assignments }: Pr
   const [showForm, setShowForm] = useState(false)
   const [adding, setAdding] = useState(false)
   const [togglingId, setTogglingId] = useState<string | null>(null)
+  const [phoneError, setPhoneError] = useState('')
 
   function getObras(memberId: string) {
     return assignments.filter(a => a.team_member_id === memberId).map(a => a.obras?.name).filter(Boolean)
@@ -34,6 +35,11 @@ export function EquipeGlobalClient({ userId, members: initial, assignments }: Pr
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault()
     if (!name.trim()) return
+    if (phone && !isValidPhone(phone)) {
+      setPhoneError('Telefone inválido. Use (XX) XXXXX-XXXX')
+      return
+    }
+    setPhoneError('')
     setAdding(true)
     const supabase = createClient()
     const { data } = await supabase
@@ -101,7 +107,15 @@ export function EquipeGlobalClient({ userId, members: initial, assignments }: Pr
           <p className="font-semibold text-ink text-sm">Novo trabalhador</p>
           <Input label="Nome" value={name} onChange={e => setName(e.target.value)} placeholder="Ex: Carlos Pereira" required />
           <Input label="Função (opcional)" value={role} onChange={e => setRole(e.target.value)} placeholder="Ex: Pedreiro" />
-          <Input label="Telefone (opcional)" value={phone} onChange={e => setPhone(e.target.value)} placeholder="(11) 99999-9999" />
+          <div>
+            <Input
+              label="Telefone (opcional)"
+              value={phone}
+              onChange={e => { setPhone(formatPhone(e.target.value)); setPhoneError('') }}
+              placeholder="(11) 99999-9999"
+            />
+            {phoneError && <p className="text-xs text-danger mt-1">{phoneError}</p>}
+          </div>
           <div className="flex gap-2">
             <Button type="submit" loading={adding} className="flex-1">Adicionar</Button>
             <Button type="button" variant="secondary" onClick={() => setShowForm(false)}>Cancelar</Button>

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { formatCurrency, formatDate, formatDateLong, todayISO, getObrasLimit, tierLabel } from '../utils'
+import { formatCurrency, formatDate, formatDateLong, todayISO, getObrasLimit, tierLabel, formatPhone, isValidPhone } from '../utils'
 
 describe('formatCurrency', () => {
   it('formats positive value', () => {
@@ -71,6 +71,45 @@ describe('getObrasLimit', () => {
   })
   it('unknown tier defaults to 1', () => {
     expect(getObrasLimit('unknown')).toBe(1)
+  })
+})
+
+describe('formatPhone', () => {
+  it('formats 11-digit celular', () => {
+    expect(formatPhone('11987654321')).toBe('(11) 98765-4321')
+  })
+  it('formats 10-digit fixo', () => {
+    expect(formatPhone('1132165432')).toBe('(11) 3216-5432')
+  })
+  it('formats partial input', () => {
+    expect(formatPhone('119')).toBe('(11) 9')
+  })
+  it('strips non-digits', () => {
+    expect(formatPhone('(11) 98765-4321')).toBe('(11) 98765-4321')
+  })
+  it('returns empty for empty input', () => {
+    expect(formatPhone('')).toBe('')
+  })
+  it('caps at 11 digits', () => {
+    expect(formatPhone('119876543210000')).toBe('(11) 98765-4321')
+  })
+})
+
+describe('isValidPhone', () => {
+  it('valid celular 11 digits', () => {
+    expect(isValidPhone('(11) 98765-4321')).toBe(true)
+  })
+  it('valid fixo 10 digits', () => {
+    expect(isValidPhone('(11) 3216-5432')).toBe(true)
+  })
+  it('invalid — too short', () => {
+    expect(isValidPhone('(11) 9876')).toBe(false)
+  })
+  it('invalid — too long', () => {
+    expect(isValidPhone('(11) 98765-43210')).toBe(false)
+  })
+  it('empty string is invalid', () => {
+    expect(isValidPhone('')).toBe(false)
   })
 })
 
