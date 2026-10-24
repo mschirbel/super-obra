@@ -12,23 +12,28 @@ export default async function FinanceiroPage({ params }: Props) {
   const { data: obra } = await supabase.from('obras').select('id, name').eq('id', id).single()
   if (!obra) notFound()
 
-  const { data: measurements } = await supabase
-    .from('measurements')
-    .select('*, measurement_items(*)')
-    .eq('obra_id', id)
-    .neq('status', 'rascunho')
-    .order('created_at', { ascending: false })
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: proposalRaw } = await supabase
-    .from('proposals')
-    .select('total_value, proposal_items(*)')
-    .eq('obra_id', id)
-    .eq('status', 'aceita')
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .single()
-  const proposal = proposalRaw as any
+  const [{ data: measurements }, { data: extraItems }, proposalResult] = await Promise.all([
+    supabase
+      .from('measurements')
+      .select('*, measurement_items(*)')
+      .eq('obra_id', id)
+      .neq('status', 'rascunho')
+      .order('created_at', { ascending: false }),
+    supabase
+      .from('extra_items')
+      .select('*')
+      .eq('obra_id', id)
+      .eq('is_aditivo', true)
+      .order('created_at', { ascending: false }),
+    supabase
+      .from('proposals')
+      .select('total_value')
+      .eq('obra_id', id)
+      .eq('status', 'aceita')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single(),
+  ])
 
   return (
     <div className="pb-4">
@@ -36,7 +41,8 @@ export default async function FinanceiroPage({ params }: Props) {
       <FinanceiroClient
         obraId={id}
         measurements={measurements || []}
-        proposalTotal={proposal?.total_value ?? null}
+        extraItems={extraItems || []}
+        proposalTotal={(proposalResult.data as any)?.total_value ?? null}
       />
     </div>
   )

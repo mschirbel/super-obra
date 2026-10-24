@@ -43,6 +43,23 @@ export function formatDateLong(date: string | Date | null | undefined): string {
   }
 }
 
+export function formatDateShort(date: string | Date | null | undefined): string {
+  if (!date) return ''
+  try {
+    const d = typeof date === 'string'
+      ? (date.includes('T') ? new Date(date) : new Date(date + 'T00:00:00'))
+      : date
+    if (isNaN(d.getTime())) return ''
+    const weekday = new Intl.DateTimeFormat('pt-BR', { weekday: 'short' }).format(d)
+      .toUpperCase().replace('.', '')
+    const day = d.getDate().toString().padStart(2, '0')
+    const month = (d.getMonth() + 1).toString().padStart(2, '0')
+    return `${weekday} ${day}/${month}`
+  } catch {
+    return ''
+  }
+}
+
 export function todayISO(): string {
   return new Date().toISOString().split('T')[0]
 }

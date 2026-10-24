@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect, notFound } from 'next/navigation'
-import { PageHeader } from '@/components/layout/page-header'
+import { ObraTabBar } from '@/components/layout/obra-tab-bar'
 import { ContratoClient } from './contrato-client'
 
 interface Props { params: Promise<{ id: string }> }
@@ -20,7 +20,10 @@ export default async function ContratoPage({ params }: Props) {
 
   return (
     <div className="min-h-dvh bg-ground pb-6">
-      <PageHeader title="Contrato" subtitle={obra.name} backHref={`/obras/${id}`} variant="exec" />
+      <div className="px-[18px] pt-5 pb-1">
+        <p className="font-display font-bold text-[22px] text-ink leading-tight">{obra.name}</p>
+      </div>
+      <ObraTabBar obraId={id} />
       <ContratoClient obraId={id} catalogItems={catalogItems || []} />
     </div>
   )

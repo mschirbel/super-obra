@@ -1,43 +1,43 @@
 'use client'
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
-import { MeasurementStatusBadge } from '@/components/ui/status-badge'
-import { formatCurrency, formatDate, todayISO } from '@/lib/utils'
-import type { Measurement, MeasurementItem, CatalogItem } from '@/lib/types/database'
+import { formatCurrency, formatDateShort, todayISO } from '@/lib/utils'
+import type { Measurement, MeasurementItem, CatalogItem, ExtraItem } from '@/lib/types/database'
 
-type MeasurementWithItems = Measurement & { measurement_items: MeasurementItem[] }
+type MeasurementFull = Measurement & { measurement_items: MeasurementItem[] }
 
 interface Props {
   obraId: string
-  measurements: MeasurementWithItems[]
+  measurements: MeasurementFull[]
   catalogItems: CatalogItem[]
+  extraItemsPendentes: ExtraItem[]
+  contractTotal: number
+  measuredTotal: number
+  today: string
 }
 
-interface NewItem {
-  catalog_item_id: string | null
-  description: string
-  unit: string
-  qty: number
-  unit_price: number
-}
-
-export function MedicaoClient({ obraId, measurements: initial, catalogItems }: Props) {
+export function MedicaoClient({
+  obraId, measurements: initial, catalogItems, extraItemsPendentes,
+  contractTotal, measuredTotal, today
+}: Props) {
+  const router = useRouter()
   const [measurements, setMeasurements] = useState(initial)
-  const [tab, setTab] = useState<'list' | 'new'>('list')
-  const [periodStart, setPeriodStart] = useState('')
-  const [periodEnd, setPeriodEnd] = useState(todayISO())
-  const [items, setItems] = useState<NewItem[]>([])
   const [generating, setGenerating] = useState(false)
+  const [sending, setSending] = useState<string | null>(null)
+  const [showNew, setShowNew] = useState(false)
+  const [periodStart, setPeriodStart] = useState(getWeekStart(today))
+  const [periodEnd, setPeriodEnd] = useState(today)
+  const [generatedItems, setGeneratedItems] = useState<Array<{
+    catalog_item_id: string; description: string; unit: string; qty: number; unit_price: number
+  }>>([])
   const [saving, setSaving] = useState(false)
-  const [sendingId, setSendingId] = useState<string | null>(null)
 
   async function handleGenerate() {
     if (!periodStart || !periodEnd) return
     setGenerating(true)
     const supabase = createClient()
-
-    // Fetch diary progress for the period
     const { data: diaries } = await supabase
       .from('diary_entries')
       .select('id, date, diary_item_progress(catalog_item_id, qty_done)')
@@ -46,16 +46,14 @@ export function MedicaoClient({ obraId, measurements: initial, catalogItems }: P
       .gte('date', periodStart)
       .lte('date', periodEnd)
 
-    // Aggregate progress per catalog item
     const progressMap: Record<string, number> = {}
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ;(diaries as any[])?.forEach((d: any) => {
-      d.diary_item_progress.forEach((p: any) => {
+      d.diary_item_progress?.forEach((p: any) => {
         progressMap[p.catalog_item_id] = (progressMap[p.catalog_item_id] || 0) + p.qty_done
       })
     })
 
-    const generatedItems: NewItem[] = catalogItems
+    const items = catalogItems
       .filter(item => progressMap[item.id] > 0)
       .map(item => ({
         catalog_item_id: item.id,
@@ -65,30 +63,15 @@ export function MedicaoClient({ obraId, measurements: initial, catalogItems }: P
         unit_price: item.unit_price,
       }))
 
-    setItems(generatedItems.length > 0 ? generatedItems : catalogItems.slice(0, 3).map(item => ({
-      catalog_item_id: item.id,
-      description: item.description,
-      unit: item.unit,
-      qty: 0,
-      unit_price: item.unit_price,
-    })))
+    setGeneratedItems(items)
     setGenerating(false)
   }
 
-  function updateItem(idx: number, field: keyof NewItem, value: any) {
-    setItems(prev => prev.map((item, i) => i === idx ? { ...item, [field]: value } : item))
-  }
-
-  function addRow() {
-    setItems(prev => [...prev, { catalog_item_id: null, description: '', unit: 'un', qty: 0, unit_price: 0 }])
-  }
-
   async function handleSave() {
-    const validItems = items.filter(i => i.description.trim() && i.qty > 0)
-    if (!validItems.length || !periodStart || !periodEnd) return
+    if (!generatedItems.length) return
     setSaving(true)
     const supabase = createClient()
-    const total = validItems.reduce((sum, i) => sum + i.qty * i.unit_price, 0)
+    const total = generatedItems.reduce((s, i) => s + i.qty * i.unit_price, 0)
 
     const { data: measurement } = await supabase
       .from('measurements')
@@ -98,139 +81,201 @@ export function MedicaoClient({ obraId, measurements: initial, catalogItems }: P
 
     if (measurement) {
       await supabase.from('measurement_items').insert(
-        validItems.map(item => ({
+        generatedItems.map(i => ({
           measurement_id: measurement.id,
-          catalog_item_id: item.catalog_item_id,
-          description: item.description,
-          unit: item.unit,
-          qty: item.qty,
-          unit_price: item.unit_price,
+          catalog_item_id: i.catalog_item_id,
+          description: i.description,
+          unit: i.unit,
+          qty: i.qty,
+          unit_price: i.unit_price,
         }))
       )
       setMeasurements(prev => [{ ...measurement, measurement_items: [] }, ...prev])
-      setTab('list')
-      setItems([])
+      setShowNew(false)
+      setGeneratedItems([])
     }
     setSaving(false)
   }
 
   async function handleSend(measurementId: string) {
-    setSendingId(measurementId)
+    setSending(measurementId)
     const supabase = createClient()
     await supabase.from('measurements').update({ status: 'enviada', sent_at: new Date().toISOString() }).eq('id', measurementId)
-    setMeasurements(prev => prev.map(m => m.id === measurementId ? { ...m, status: 'enviada' as const, sent_at: new Date().toISOString() } : m))
-    setSendingId(null)
+    setMeasurements(prev => prev.map(m => m.id === measurementId ? { ...m, status: 'enviada' as const } : m))
+    setSending(null)
+    router.refresh()
   }
 
-  const total = items.reduce((sum, i) => sum + (Number(i.qty) * Number(i.unit_price)), 0)
+  const measNum = measurements.length + 1
+  const generatedTotal = generatedItems.reduce((s, i) => s + i.qty * i.unit_price, 0)
+
+  if (showNew) {
+    return (
+      <div className="px-[18px] pt-4 flex flex-col gap-4 pb-8">
+        {/* Período */}
+        <div className="bg-frame border border-chrome-line rounded-[10px] px-[14px] py-3 flex gap-3">
+          <div className="flex-1">
+            <label className="text-[10.5px] font-mono font-semibold uppercase tracking-[.06em] text-ink-3 block mb-1">De</label>
+            <input type="date" value={periodStart} onChange={e => setPeriodStart(e.target.value)}
+              className="w-full text-[13.5px] border border-chrome-line rounded-[8px] px-2 py-1.5 bg-chrome focus:outline-none focus:border-exec" />
+          </div>
+          <div className="flex-1">
+            <label className="text-[10.5px] font-mono font-semibold uppercase tracking-[.06em] text-ink-3 block mb-1">Até</label>
+            <input type="date" value={periodEnd} onChange={e => setPeriodEnd(e.target.value)}
+              className="w-full text-[13.5px] border border-chrome-line rounded-[8px] px-2 py-1.5 bg-chrome focus:outline-none focus:border-exec" />
+          </div>
+        </div>
+
+        <Button variant="secondary" loading={generating} onClick={handleGenerate} className="w-full">
+          Gerar a partir dos dias fechados
+        </Button>
+
+        {generatedItems.length > 0 && (
+          <>
+            {/* Sumário */}
+            <div className="bg-frame border border-chrome-line rounded-[10px] px-[14px] py-3">
+              <div className="flex items-baseline justify-between">
+                <p className="font-display font-bold text-[14.5px] text-ink">
+                  Medição {measNum} · {formatDateShort(periodStart)} a {formatDateShort(periodEnd)}
+                </p>
+                <span className="font-mono font-bold text-[17px] text-ink">{formatCurrency(generatedTotal)}</span>
+              </div>
+              <p className="text-[12.5px] text-ink-2 mt-1">
+                Saiu de {measurements.filter(m => m.status !== 'rascunho').length} dias fechados. Executado × preço do contrato.
+              </p>
+            </div>
+
+            {/* Itens */}
+            <div className="bg-chrome border border-chrome-line rounded-[10px] divide-y divide-line-soft">
+              {generatedItems.map((item, idx) => (
+                <div key={idx} className="flex items-start gap-3 px-[14px] py-3">
+                  <div className="flex-1">
+                    <p className="text-[11.5px] font-mono text-ink-3">{item.catalog_item_id.slice(0, 5)}</p>
+                    <p className="text-[13.5px] text-ink">{item.description}</p>
+                    <p className="text-[11.5px] text-ink-3">{item.qty} de {item.qty} · {item.unit}</p>
+                  </div>
+                  <span className="font-mono text-[13.5px] text-ink">{formatCurrency(item.qty * item.unit_price)}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* Não entra */}
+            {extraItemsPendentes.length > 0 && (
+              <div className="bg-chrome border border-chrome-line rounded-[10px]">
+                <div className="flex items-center justify-between px-[14px] py-2 bg-frame border-b border-line-soft rounded-t-[10px]">
+                  <span className="text-[10.5px] font-mono font-semibold uppercase tracking-[.06em] text-ink-3">Não entra</span>
+                  <span className="text-[10.5px] font-mono font-semibold text-ink-3">{extraItemsPendentes.length}</span>
+                </div>
+                {extraItemsPendentes.map(item => (
+                  <div key={item.id} className="flex items-center gap-3 px-[14px] py-3 border-b border-line-soft last:border-0">
+                    <p className="flex-1 text-[13.5px] text-ink-2">{item.description}</p>
+                    <span className="font-mono font-semibold text-[10.5px] uppercase tracking-[.06em] bg-signal-soft text-signal px-2 py-0.5 rounded-[5px]">
+                      Aditivo pendente
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="flex items-center justify-between">
+              <span className="text-[13.5px] text-ink-2">Contrato medido até aqui</span>
+              <span className="font-mono font-semibold text-[13.5px] text-ink">
+                {formatCurrency(measuredTotal + generatedTotal)} de {formatCurrency(contractTotal)}
+              </span>
+            </div>
+
+            <Button size="lg" loading={saving} onClick={handleSave} className="w-full">
+              Enviar para o cliente
+            </Button>
+            <p className="text-[11.5px] text-ink-3 text-center">
+              Toque num item para ver os dias em que foi apontado. Você ainda pode corrigir antes de enviar.
+            </p>
+          </>
+        )}
+
+        <Button variant="secondary" onClick={() => setShowNew(false)} className="w-full">Cancelar</Button>
+      </div>
+    )
+  }
 
   return (
-    <div className="px-4 pt-4 flex flex-col gap-4">
-      {tab === 'list' ? (
-        <>
-          <Button onClick={() => setTab('new')} className="w-full">+ Nova medição</Button>
+    <div className="px-[18px] pt-4 flex flex-col gap-4 pb-8">
+      <Button onClick={() => setShowNew(true)} className="w-full">+ Fechar medição da semana</Button>
 
-          {!measurements.length && (
-            <div className="bg-chrome rounded-2xl border border-chrome-line p-6 text-center">
-              <p className="text-ink-2 text-sm">Nenhuma medição ainda.</p>
-            </div>
-          )}
+      {!measurements.length && (
+        <div className="bg-chrome rounded-[10px] border border-chrome-line p-6 text-center">
+          <p className="text-[13.5px] text-ink-2">Nenhuma medição ainda.</p>
+        </div>
+      )}
 
-          {measurements.map(m => (
-            <div key={m.id} className="bg-chrome rounded-2xl border border-chrome-line p-4">
-              <div className="flex items-center gap-3">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-0.5">
-                    <MeasurementStatusBadge status={m.status} />
-                  </div>
-                  <p className="font-semibold text-ink">{formatCurrency(m.total)}</p>
-                  <p className="text-xs text-ink-3">
-                    {formatDate(m.period_start)} – {formatDate(m.period_end)}
-                  </p>
+      {measurements.map((m, idx) => {
+        const measIdx = measurements.length - idx
+        return (
+          <div key={m.id} className="bg-chrome border border-chrome-line rounded-[10px]">
+            <div className="px-[14px] pt-[14px] pb-3">
+              <div className="flex items-baseline justify-between mb-1">
+                <p className="font-display font-bold text-[14.5px] text-ink">
+                  Medição {measIdx} · {formatDateShort(m.period_start)} a {formatDateShort(m.period_end)}
+                </p>
+                <span className="font-mono font-bold text-[17px] text-ink ml-3">{formatCurrency(m.total)}</span>
+              </div>
+              <span className={`font-mono font-semibold text-[10.5px] uppercase tracking-[.06em] px-2 py-0.5 rounded-[5px] ${
+                m.status === 'aprovada' ? 'bg-success-soft text-success' :
+                m.status === 'enviada' ? 'bg-exec-soft text-exec' :
+                m.status === 'contestada' ? 'bg-danger-soft text-danger' :
+                'bg-frame border border-chrome-line text-ink-3'
+              }`}>
+                {m.status === 'aprovada' ? 'Aprovada' : m.status === 'enviada' ? 'Enviada' : m.status === 'contestada' ? 'Contestada' : 'Rascunho'}
+              </span>
+
+              {m.measurement_items.length > 0 && (
+                <div className="mt-3 flex flex-col gap-1.5">
+                  {m.measurement_items.map(item => (
+                    <div key={item.id} className="flex items-start gap-2">
+                      <div className="flex-1">
+                        <p className="text-[13.5px] text-ink">{item.description}</p>
+                        <p className="text-[11.5px] text-ink-3">{item.qty} {item.unit}</p>
+                      </div>
+                      <span className="font-mono text-[13.5px] text-ink">{formatCurrency(item.total)}</span>
+                    </div>
+                  ))}
                 </div>
-                {m.status === 'rascunho' && (
-                  <Button size="sm" loading={sendingId === m.id} onClick={() => handleSend(m.id)}>
-                    Enviar
-                  </Button>
-                )}
-                {m.status === 'contestada' && m.contest_reason && (
-                  <div className="mt-2 w-full">
-                    <p className="text-xs text-danger bg-danger-soft rounded-lg px-3 py-2">
-                      ⚠️ {m.contest_reason}
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
-          ))}
-        </>
-      ) : (
-        <>
-          <div className="bg-chrome rounded-2xl border border-chrome-line p-4 flex flex-col gap-3">
-            <p className="font-semibold text-ink">Período de referência</p>
-            <div className="flex gap-3">
-              <div className="flex-1">
-                <label className="text-xs font-semibold text-ink-3 mb-1 block">De</label>
-                <input
-                  type="date"
-                  value={periodStart}
-                  onChange={e => setPeriodStart(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-frame-line rounded-xl focus:outline-none focus:border-exec bg-chrome"
-                />
-              </div>
-              <div className="flex-1">
-                <label className="text-xs font-semibold text-ink-3 mb-1 block">Até</label>
-                <input
-                  type="date"
-                  value={periodEnd}
-                  onChange={e => setPeriodEnd(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-frame-line rounded-xl focus:outline-none focus:border-exec bg-chrome"
-                />
-              </div>
-            </div>
-            <Button variant="secondary" loading={generating} onClick={handleGenerate} disabled={!periodStart || !periodEnd}>
-              Gerar a partir do diário
-            </Button>
-          </div>
+              )}
 
-          {/* Items table */}
-          <div className="bg-chrome rounded-2xl border border-chrome-line overflow-hidden">
-            <div className="p-3 border-b border-chrome-line flex items-center justify-between">
-              <p className="font-semibold text-ink text-sm">Itens da medição</p>
-              <span className="font-mono text-sm font-semibold text-exec">{formatCurrency(total)}</span>
-            </div>
-            {items.map((item, idx) => (
-              <div key={idx} className="border-b border-chrome-line last:border-0 p-3 flex flex-col gap-2">
-                <input
-                  value={item.description}
-                  onChange={e => updateItem(idx, 'description', e.target.value)}
-                  placeholder="Descrição"
-                  className="w-full text-sm border border-frame-line rounded-lg px-2 py-1.5 focus:outline-none focus:border-exec bg-chrome"
-                />
-                <div className="flex gap-2">
-                  <input value={item.unit} onChange={e => updateItem(idx, 'unit', e.target.value)} placeholder="Un"
-                    className="w-14 text-xs border border-frame-line rounded-lg px-2 py-1.5 focus:outline-none focus:border-exec bg-chrome" />
-                  <input type="number" value={item.qty || ''} onChange={e => updateItem(idx, 'qty', parseFloat(e.target.value) || 0)} placeholder="Qtd"
-                    className="w-16 text-xs border border-frame-line rounded-lg px-2 py-1.5 focus:outline-none focus:border-exec bg-chrome" />
-                  <input type="number" value={item.unit_price || ''} onChange={e => updateItem(idx, 'unit_price', parseFloat(e.target.value) || 0)} placeholder="R$/un"
-                    className="w-24 text-xs border border-frame-line rounded-lg px-2 py-1.5 focus:outline-none focus:border-exec bg-chrome" />
-                  <span className="text-xs font-mono text-ink-3 self-center">= {formatCurrency(item.qty * item.unit_price)}</span>
+              {m.status === 'contestada' && m.contest_reason && (
+                <div className="mt-3 bg-danger-soft rounded-[8px] px-3 py-2">
+                  <p className="text-[12.5px] text-danger">{m.contest_reason}</p>
                 </div>
-              </div>
-            ))}
-            <div className="p-3">
-              <button onClick={addRow} className="text-sm text-exec font-semibold hover:underline">+ Adicionar item</button>
+              )}
             </div>
-          </div>
 
-          <div className="flex gap-3">
-            <Button variant="secondary" onClick={() => { setTab('list'); setItems([]) }} className="flex-1">Cancelar</Button>
-            <Button loading={saving} onClick={handleSave} disabled={!items.some(i => i.description && i.qty > 0)} className="flex-1">
-              Salvar medição
-            </Button>
+            {m.status === 'rascunho' && (
+              <div className="px-[14px] pb-[14px]">
+                <Button size="sm" loading={sending === m.id} onClick={() => handleSend(m.id)} className="w-full">
+                  Enviar para o cliente
+                </Button>
+              </div>
+            )}
           </div>
-        </>
+        )
+      })}
+
+      {measurements.length > 0 && (
+        <div className="flex items-center justify-between px-1">
+          <span className="text-[13.5px] text-ink-2">Contrato medido até aqui</span>
+          <span className="font-mono font-semibold text-[13.5px] text-ink">
+            {formatCurrency(measuredTotal)} de {formatCurrency(contractTotal)}
+          </span>
+        </div>
       )}
     </div>
   )
+}
+
+function getWeekStart(today: string): string {
+  const d = new Date(today + 'T00:00:00')
+  const day = d.getDay()
+  const diff = day === 0 ? -6 : 1 - day
+  d.setDate(d.getDate() + diff)
+  return d.toISOString().split('T')[0]
 }

@@ -71,6 +71,7 @@ export type Measurement = {
 export type MeasurementItem = {
   id: string; measurement_id: string; catalog_item_id: string | null
   description: string; unit: string; qty: number; unit_price: number; total: number
+  contested: boolean; contest_reason: string | null; contest_type: string | null
 }
 export type Purchase = {
   id: string; obra_id: string; description: string; qty: number; unit: string
@@ -84,7 +85,17 @@ export type SinapiInsumo = {
 }
 export type Blocker = {
   id: string; obra_id: string; description: string; status: string
+  type: string | null; responsible: string | null; due_date: string | null
+  catalog_item_id: string | null; notify_client: boolean
   created_by: string | null; resolved_at: string | null; created_at: string; updated_at: string
+}
+
+export type ExtraItem = {
+  id: string; obra_id: string; diary_entry_id: string | null
+  description: string; qty: number; unit: string; unit_price: number | null
+  is_aditivo: boolean; aditivo_status: string
+  approved_at: string | null; rejected_at: string | null
+  created_at: string; updated_at: string
 }
 
 export interface Database {

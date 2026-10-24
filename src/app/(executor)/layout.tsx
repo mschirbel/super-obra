@@ -21,8 +21,10 @@ export default async function ExecutorLayout({ children }: { children: React.Rea
       <MobileNav
         variant="exec"
         items={[
-          { href: '/obras', label: 'Obras', icon: '🏗️' },
-          { href: '/equipe', label: 'Equipe', icon: '👷' },
+          { href: '/obras', label: 'Obras', icon: '⊞' },
+          { href: '/semana', label: 'Semana', icon: '▦' },
+          { href: '/equipe', label: 'Equipe', icon: '⊕' },
+          { href: '/planos', label: 'Financeiro', icon: '▤' },
         ]}
       />
     </div>
