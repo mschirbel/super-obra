@@ -123,14 +123,15 @@ export interface Database {
       catalog_items: { Row: CatalogItem; Insert: Omit<CatalogItem, 'id' | 'created_at' | 'updated_at' | 'qty_done'> & { qty_done?: number }; Update: Partial<Omit<CatalogItem, 'id'>>; Relationships: Rel }
       team_members: { Row: TeamMember; Insert: Omit<TeamMember, 'id' | 'created_at' | 'active' | 'phone'> & { active?: boolean; phone?: string | null }; Update: Partial<Omit<TeamMember, 'id'>>; Relationships: Rel }
       obra_assignments: { Row: ObraAssignment; Insert: Omit<ObraAssignment, 'id' | 'assigned_at' | 'unassigned_at'> & { unassigned_at?: string | null }; Update: Partial<Omit<ObraAssignment, 'id'>>; Relationships: Rel }
-      diary_entries: { Row: DiaryEntry; Insert: Omit<DiaryEntry, 'id' | 'created_at' | 'updated_at'>; Update: Partial<Omit<DiaryEntry, 'id'>>; Relationships: Rel }
+      diary_entries: { Row: DiaryEntry; Insert: Omit<DiaryEntry, 'id' | 'created_at' | 'updated_at' | 'no_work' | 'no_work_reason' | 'notes' | 'closed' | 'closed_at'> & { no_work?: boolean; no_work_reason?: string | null; notes?: string | null; closed?: boolean; closed_at?: string | null }; Update: Partial<Omit<DiaryEntry, 'id'>>; Relationships: Rel }
       diary_workers: { Row: DiaryWorker; Insert: Omit<DiaryWorker, 'id'>; Update: Partial<Omit<DiaryWorker, 'id'>>; Relationships: Rel }
       diary_item_progress: { Row: DiaryItemProgress; Insert: Omit<DiaryItemProgress, 'id'>; Update: Partial<Omit<DiaryItemProgress, 'id'>>; Relationships: Rel }
       measurements: { Row: Measurement; Insert: Omit<Measurement, 'id' | 'created_at' | 'updated_at' | 'status' | 'sent_at' | 'contest_reason' | 'approved_at' | 'contested_at'> & { status?: MeasurementStatus; sent_at?: string | null; contest_reason?: string | null; approved_at?: string | null; contested_at?: string | null }; Update: Partial<Omit<Measurement, 'id'>>; Relationships: Rel }
-      measurement_items: { Row: MeasurementItem; Insert: Omit<MeasurementItem, 'id' | 'total'>; Update: Partial<Omit<MeasurementItem, 'id' | 'total'>>; Relationships: Rel }
+      measurement_items: { Row: MeasurementItem; Insert: Omit<MeasurementItem, 'id' | 'total' | 'contested' | 'contest_reason' | 'contest_type'> & { contested?: boolean; contest_reason?: string | null; contest_type?: string | null }; Update: Partial<Omit<MeasurementItem, 'id' | 'total'>>; Relationships: Rel }
       purchases: { Row: Purchase; Insert: Omit<Purchase, 'id' | 'created_at' | 'updated_at' | 'status'> & { status?: PurchaseStatus }; Update: Partial<Omit<Purchase, 'id'>>; Relationships: Rel }
       sinapi_insumos: { Row: SinapiInsumo; Insert: Omit<SinapiInsumo, 'id' | 'search_vector'>; Update: Partial<Omit<SinapiInsumo, 'id' | 'search_vector'>>; Relationships: Rel }
-      blockers: { Row: Blocker; Insert: Omit<Blocker, 'id' | 'created_at' | 'updated_at' | 'resolved_at'> & { resolved_at?: string | null }; Update: Partial<Omit<Blocker, 'id'>>; Relationships: Rel }
+      blockers: { Row: Blocker; Insert: Omit<Blocker, 'id' | 'created_at' | 'updated_at' | 'resolved_at' | 'created_by'> & { resolved_at?: string | null; created_by?: string | null }; Update: Partial<Omit<Blocker, 'id'>>; Relationships: Rel }
+      extra_items: { Row: ExtraItem; Insert: Omit<ExtraItem, 'id' | 'created_at' | 'updated_at' | 'diary_entry_id' | 'is_aditivo' | 'aditivo_status' | 'approved_at' | 'rejected_at' | 'unit_price'> & { diary_entry_id?: string | null; is_aditivo?: boolean; aditivo_status?: string; approved_at?: string | null; rejected_at?: string | null; unit_price?: number | null }; Update: Partial<Omit<ExtraItem, 'id'>>; Relationships: Rel }
     }
   }
 }

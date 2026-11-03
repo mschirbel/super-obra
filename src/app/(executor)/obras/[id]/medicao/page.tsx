@@ -34,7 +34,7 @@ export default async function MedicaoPage({ params }: Props) {
   if (!obra) notFound()
 
   const contractTotal = (catalogItems || []).reduce((s, i) => s + i.qty_total * i.unit_price, 0)
-  const measuredTotal = (measurements || [])
+  const measuredTotal = ((measurements as unknown as { status: string; total: number }[] | null) || [])
     .filter(m => m.status === 'aprovada' || m.status === 'enviada')
     .reduce((s, m) => s + m.total, 0)
 

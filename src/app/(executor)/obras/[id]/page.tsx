@@ -36,7 +36,7 @@ export default async function ObraPage({ params }: Props) {
 
   const { data: todayEntry } = await supabase
     .from('diary_entries')
-    .select('id, closed, no_work, diary_item_progress(catalog_item_id, qty_done)')
+    .select('id, closed, no_work')
     .eq('obra_id', id)
     .eq('date', today)
     .maybeSingle()

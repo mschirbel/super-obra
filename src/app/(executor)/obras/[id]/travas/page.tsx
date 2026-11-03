@@ -20,7 +20,7 @@ export default async function TravasPage({ params }: Props) {
     supabase.from('obras').select('id, name').eq('id', id).eq('executor_id', user.id).single(),
     supabase
       .from('blockers')
-      .select('*, catalog_items(description)')
+      .select('*')
       .eq('obra_id', id)
       .is('resolved_at', null)
       .order('due_date', { ascending: true, nullsFirst: false }),
